@@ -53,15 +53,49 @@ string (c:s) = do char c
                   return (c:s)
 
 digit :: Parser Char
-digit = sat (and . ap [('0'<=), (<='9')] . pure)
+digit = sat (overAll [('0'<=), (<='9')])
 lower :: Parser Char
-lower = sat (and . ap [('a'<=), (<='z')] . pure)
+lower = sat (overAll [('a'<=), (<='z')])
 upper :: Parser Char
-upper = sat (and . ap [('A'<=), (<='Z')] . pure)
+upper = sat (overAll [('A'<=), (<='Z')])
+
+overAll :: [(a -> Bool)] -> a -> Bool
+overAll preds = and . ap preds . pure
 
 letter :: Parser Char
 letter = lower <|> upper
 alphanum :: Parser Char
 alphanum = letter <|> digit
 
+many1 :: Parser a -> Parser [a]
+many1 p = do v <- p
+             vs <- manyP p
+             return (v:vs)
+
+manyP :: Parser a -> Parser [a]
+manyP p = many1 p <|> return []
+
+word :: Parser String
+word = many alphanum
+
+nat :: Parser Int 
+nat = do d <- many1 digit
+         return (read d :: Int)
+
+int :: Parser Int 
+int = do char '-'
+         n <- nat
+         return (-n)
+      <|> nat
+
+sepBy1 :: Parser a -> Parser b -> Parser [a]
+p `sepBy1` sep = do v <- p
+                    do sep
+                       vs <- p `sepBy` sep
+                       return (v:vs)
+                     <|> return ([v])
+                    
+
+sepBy :: Parser a -> Parser b -> Parser [a]
+p `sepBy` sep = p `sepBy1` sep <|> return []
 
